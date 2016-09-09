@@ -50,7 +50,7 @@ volatile int ticks2 = 0;
 volatile int ticksTemp = 0;
 volatile int ticks2Temp = 0;
 volatile double speedRightNow = 0;
-volatile double speedLeftNow = 0;
+volatile double speedLeftNow = 200;
 volatile double targetRPM = 100;
 volatile int start_time = 0;  
 volatile double RPMleftNow = 0;
@@ -73,6 +73,22 @@ void loop() {
   //continuously gets IR sensor reading
   countVoltage();
   countDistance();
+  /*forward();
+  forward();
+  forward();
+  forward();
+  forward();
+  forward();
+  forward();
+  forward();*/
+  //forwardDistance(50);
+  rotateLeft(45);
+  forwardDistance(50);
+  rotateLeft(90);
+  forwardDistance(50);
+  brake();
+  
+  delay(10000);
   // put your main code here, to run repeatedly:
 
 }
@@ -220,9 +236,11 @@ double correct(double diff){
 void initializeForward(){
   initi=1;
   md.setM1Speed(200);
-  delay(30);
+  delay(60);
   md.setM2Speed(200);
   speedLeftNow=200;
+  RPMleftNow = (ticks2 / 562.25) * 1200;
+
 }
 //start the motors to move backward
 void initializeBackward(){
@@ -240,6 +258,8 @@ void forwardDistance(double distance){
   initializeForward();
   while(ticks<targetTicks && ticks2<targetTicks){
     straightLineMotion(1); 
+    Serial.println("ticks: ");
+    Serial.println(ticks);
   }
   brake();
   RPMrightNow = 0;
@@ -267,11 +287,17 @@ void backwardDistance(double distance){
 //Robot goes forward for 10cm
 void forward(){
   targetTicks = countTicks(10);
+  Serial.println(targetTicks);
   ticks=0;
   ticks2=0;
-  initializeForward();
+  //initializeForward();
+  md.setSpeeds(60,88);
   while(ticks<targetTicks && ticks2<targetTicks){
-    straightLineMotion(1);
+    
+    md.setSpeeds(186,200);
+    //delay(100);
+    //md.setM1Speed(200);
+    //md.setSpeeds(190,200);
   }
   brake();
   ticks=0;
@@ -287,7 +313,7 @@ void backward(){
   ticks2=0;
   initializeBackward();
   while(ticks<targetTicks && ticks2<targetTicks){
-    straightLineMotion(0); 
+    md.setSpeeds(-190,-200);
   }
   brake();
   ticks=0;
@@ -342,6 +368,7 @@ void rotateLeft(double degree){
 
 void rotateRight(double degree){
   targetTicks = countTicksDegree(degree);
+  Serial.println(targetTicks);
   totaltickstemp=totalticks;
   ticks=0;
   ticks2=0;
@@ -355,16 +382,25 @@ void rotateRight(double degree){
 }
 
 void straightLineMotion(int option) {
+  ticksTemp=ticks;
+  ticks2Temp=ticks2;
+  ticks=0;
+  ticks2=0;
+  targetRPM = RPMleftNow;
 
-  if (RPMleftNow == 0) {
+
+  /*if (RPMleftNow == 0) {
     targetRPM = (200*0.4268)-21.33; 
   }
   else {
     targetRPM = RPMleftNow;
-  }
-  speedRightNow = ((targetRPM + 21.33) / 0.4268)+correction-42.5;
+  }*/
+  //speedRightNow=200;
+  speedRightNow = ((targetRPM + 21.33) / 0.4268)+correction-35.4;
+
 
   if(option==1){
+    
     md.setSpeeds(speedRightNow,speedLeftNow);
   }
   else{
@@ -377,9 +413,12 @@ void straightLineMotion(int option) {
   RPMrightNow = (ticks / 562.25) * 1200;
   RPMleftNow = (ticks2 / 562.25) * 1200;
 
+
   correction=correct(RPMleftNow-RPMrightNow);
-  ticks = 0;
-  ticks2 = 0;
+
+  ticks = ticks+ticksTemp;
+  ticks2 = ticks2+ticksTemp;
+
 }
 
 //Count the number of ticks needed for a straight line motion
@@ -388,7 +427,7 @@ double countTicks(int distance){
 }
 //Count the ticks needed to manuvere input degree
 double countTicksDegree(double setDegree){
-  (setDegree*1.0/360)*(10/3)*562.25;
+  return (setDegree*1.0/360)*(10/3)*562.25+10;
 }
 //Returns the distance travelled so far
 double distanceTravelled(){
@@ -402,4 +441,3 @@ void rising() {
 void rising2() {
   ticks2++;
 }
-
